@@ -11,9 +11,17 @@ import os
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtWidgets import QApplication, QWidget, QMessageBox
 from PyQt5.QtGui import QFont
+import webbrowser
+import json
 
 FONT_12 = QFont('Kaiti TC', 15)
 VERSION = '杰尼龟每周刷题打卡 v0.0 --by elepikachu'
+CONFIG_PATH = 'config.json'
+ORIGIN_CONFIG = '{' \
+                '"姓名": "巍巍",' \
+                '"位置": "米国"' \
+                '}'
+
 
 class HelloWorld(QWidget):
     def __init__(self):
@@ -26,12 +34,13 @@ class HelloWorld(QWidget):
         self.setWindowIcon(QtGui.QIcon('jng.png'))
         self.setToolTip(VERSION)
         self.img_route = 'background.jpeg'
+        self.info_dict = read_js()
         if os.path.exists(self.img_route):
             self.use_palette(img_route=self.img_route)
 
         self.InputWin = QtWidgets.QTextEdit(self)
         self.InputWin.setGeometry(75,100,270,30)
-        self.InputWin.setPlaceholderText("输入所做LC题目，逗号隔开")
+        self.InputWin.setPlaceholderText("输入要做的LC题目，一次一道")
         self.InputWin.setStyleSheet("background:rgb(255,255,255,0.6)")
 
         self.easy = QtWidgets.QCheckBox(self)
@@ -50,16 +59,23 @@ class HelloWorld(QWidget):
         self.helpButton.setGeometry(0,0,75,25)
         self.helpButton.setText("Help")
         self.helpButton.setToolTip("打开帮助文档")
+        self.helpButton.clicked.connect(self.help_window)
 
         self.configButton = QtWidgets.QPushButton(self)
         self.configButton.setGeometry(72, 0, 75, 25)
         self.configButton.setText("Config")
         self.configButton.setToolTip("打开配置窗口")
-        self.configButton.clicked.connect(self.help_window)
+        self.configButton.clicked.connect(self.config_window)
+
+        self.webButton = QtWidgets.QPushButton(self)
+        self.webButton.setGeometry(80, 170, 100, 25)
+        self.webButton.setText("Open Page")
+        self.webButton.setToolTip("打开对应lc网页")
+        self.webButton.clicked.connect(self.open_web)
 
         self.gameButton = QtWidgets.QPushButton(self)
-        self.gameButton.setGeometry(150, 170, 100, 25)
-        self.gameButton.setText("Open Game")
+        self.gameButton.setGeometry(200, 170, 100, 25)
+        self.gameButton.setText("Game Start")
         self.gameButton.setToolTip("打卡小游戏")
         self.gameButton.clicked.connect(self.close)
 
@@ -125,6 +141,17 @@ class HelloWorld(QWidget):
 
     def help_window(self):
         windows = Help()
+        windows.show_info()
+
+    def config_window(self):
+        windows = Config()
+
+    def open_web(self):
+        num = self.InputWin.toPlainText().strip()
+        page = "https://leetcode-cn.com/problems/" + num
+        print(page)
+        webbrowser.open(page)
+
 
     def bk1(self):
         self.use_palette(img_route="img1.jpeg")
@@ -146,14 +173,64 @@ class HelloWorld(QWidget):
 
 class Help(QWidget):
     def __init__(self):
-        super().__init__(self)
-        self.help_Ui()
+        super().__init__()
 
-    def help_Ui(self):
         self.setGeometry(300, 300, 400, 600)
         self.setWindowTitle("帮助文档")
         self.setWindowIcon(QtGui.QIcon('jng.png'))
+
+        self.outBox = QtWidgets.QTextBrowser(self)
+        self.outBox.setGeometry(50, 100, 300, 300)
+        self.outBox.setStyleSheet("background:rgb(255,255,255,0.6)")
         self.show()
+
+    def show_info(self):
+        with open(r'Help.txt', 'r', encoding='utf-8') as f:
+            text = f.read()
+        self.outBox.setText(text)
+
+
+class Config(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setGeometry(300, 300, 400, 600)
+        self.setWindowTitle("配置文档")
+        self.setWindowIcon(QtGui.QIcon('jng.png'))
+        self.info_dict = read_js()
+
+        self.outBox = QtWidgets.QTextEdit(self)
+        self.outBox.setGeometry(50, 100, 300, 300)
+        self.outBox.setStyleSheet("background:rgb(255,255,255,0.6)")
+        self.outBox.setText(str(self.info_dict))
+
+        self.checkButton = QtWidgets.QPushButton(self)
+        self.checkButton.setGeometry(100, 500, 75, 25)
+        self.checkButton.setText("Config")
+        self.checkButton.setToolTip("配置")
+        self.checkButton.clicked.connect(self.config)
+
+        self.submitButton = QtWidgets.QPushButton(self)
+        self.submitButton.setGeometry(250, 500, 75, 25)
+        self.submitButton.setText("Reset")
+        self.submitButton.setToolTip("重置配置")
+        self.submitButton.clicked.connect(self.reset_config)
+
+        self.show()
+
+    def config(self):
+        text = self.outBox.toPlainText().strip()
+        with open(CONFIG_PATH, 'w') as f:
+            f.write(json.dumps(eval(text), ensure_ascii=False))
+
+    def reset_config(self):
+        self.outBox.setText(str(ORIGIN_CONFIG))
+        with open(CONFIG_PATH, 'w') as f:
+            f.write(json.dumps(ORIGIN_CONFIG, ensure_ascii=False))
+
+
+def read_js(path=CONFIG_PATH):
+    with open(path) as load_f:
+        return json.load(load_f)
 
 
 
